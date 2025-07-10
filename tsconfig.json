@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowJs": false,
+    "checkJs": false,
+    "target": "ESNext",
+    "module": "ESNext",
+    "outDir": "./dist",
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "Node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "ScriptHost"],
+    "paths": {
+      "@*": ["src/*"],
+      "@data": ["src/data"],
+      "@assets": ["src/assets"],
+      "@typings": ["src/typings"],
+      "@helpers": ["src/helpers"],
+      "@handlers": ["src/handlers"],
+      "@utilities": ["src/utilities"],
+      "@middlewares": ["src/middlewares"]
+    }
+  },
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "include": ["src/**/index.ts", "src/**/*.ts"]
+}
