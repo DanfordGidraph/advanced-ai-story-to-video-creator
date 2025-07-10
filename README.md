@@ -164,20 +164,25 @@ Before you begin, ensure you have the following installed:
 
 You will also need API keys for the services you intend to use:
 
-- Google AI (for Gemini)
-- An image generation service
-- A Text-to-Speech (TTS) service
+- Google AI (for Gemini) **Gemini 2.5 Flash/Pro Recommended**
+- An image generation service **Gemini 2.5 Flash Recommended**
+- A Text-to-Speech (TTS) service **Gemini 2.5 Flash Recommended**
 
 ## Installation & Setup
 
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-username/ai-storyteller.git
-    cd ai-storyteller
+    git clone https://github.com/DanfordGidraph/advanced-ai-story-to-video-creator
+    cd advanced-ai-story-to-video-creator
     ```
 
 2.  **Install dependencies using Yarn:**
+
+    ```bash
+    corepack enable
+    ```
+
     ```bash
     yarn install
     ```
@@ -196,12 +201,12 @@ This project uses environment variables to manage API keys and other settings.
 
 ## Usage
 
-To run the application, first ensure your `package.json` has a `start` script defined, for example:
+To run the application, first ensure your `package.json` has a `start:dev` script defined, for example:
 
 ```json
 // package.json
 "scripts": {
-  "start": "ts-node src/app.ts"
+    "start:dev": "./node_modules/nodemon/bin/nodemon.js",
 },
 ```
 
@@ -209,10 +214,14 @@ To run the application, first ensure your `package.json` has a `start` script de
 2.  **Locate the main execution logic** where the input story is defined.
 3.  **Insert your story** into the designated variable.
 4.  **Run the script from your terminal:**
-    `bash
-yarn start
-`
-    The script will now execute the full pipeline. You will see log messages in your console as it moves through each stage. The final video will be saved in your designated output directory.
+
+```bash
+yarn start:dev
+```
+
+The script will now execute the full pipeline. You will see log messages in your console as it moves through each stage. The final video will be saved in your designated output directory.
+
+    NOTE: The runtime uses nodemon to automatically restart the application when you make changes to the source code.
 
 ## Project Structure
 
