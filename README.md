@@ -117,34 +117,34 @@ The `StoryBlueprint` is the heart of this project. It is the structured data tha
 
 ```json
 {
-  "project_name": "The Moonpetal's Light",
-  "story_prose": "The encroaching gloom was not a shadow...",
+  "project_name": "...",
+  "story_prose": "...",
   "screenplay": {
-    "title": "Whisperwood's Hope",
-    "logline": "A quiet village herbalist ventures into a cursed forest...",
+    "title": "...",
+    "logline": "...",
     "characters": [
       {
         "character_id": "char_001",
-        "name": "Elara",
-        "description": "A young woman, a quiet and determined gatherer of herbs...",
+        "name": "...",
+        "description": "...",
         "is_narrator": false
       }
     ],
     "scenes": [
       {
         "scene_id": "scene_001",
-        "setting_description": "The edge of a desolate village...",
+        "setting_description": "...",
         "image_prompt": {
           "prompt_type": "initial_character_generation",
-          "description": "Generate a cinematic, full-body visual representation of the main character, Elara...",
-          "required_character_ids": ["char_001"],
+          "description": "...",
+          "required_character_ids": ["..."],
           "required_image_ids": [],
           "output_image_id": "img_001"
         },
         "audio_prompt": {
-          "character_id": "narrator_001",
-          "dialogue": "The encroaching gloom was not a shadow, but an absence...",
-          "voice_style": "somber, deep, and measured"
+          "character_id": "...",
+          "dialogue": "...",
+          "voice_style": "..."
         }
       }
     ]
