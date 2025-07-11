@@ -199,8 +199,8 @@ export function createAnimatedSceneClip(sceneAsset: SceneAsset, srtPath: string,
         x='iw/2-(iw/zoom/2)':\
         y='ih/2-(ih/zoom/2)'[zoomed]`,
         // 2) burn subtitles onto that zoomed stream
-        `[zoomed]subtitles='${escapedSrt}':\
-        force_style='Fontsize=24,PrimaryColour=&HFFFFFF&,BorderStyle=3,Outline=1,Shadow=1,Alignment=2,MarginV=25'[out]`
+        // `[zoomed]subtitles='${escapedSrt}':\
+        // force_style='Fontsize=24,PrimaryColour=&HFFFFFF&,BorderStyle=3,Outline=1,Shadow=1,Alignment=2,MarginV=25'[out]`
     ].join(';');
 
     return new Promise((resolve, reject) => {
