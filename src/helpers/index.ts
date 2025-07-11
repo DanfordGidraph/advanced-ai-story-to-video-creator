@@ -1,24 +1,50 @@
-import { GoogleGenerativeAI, } from "@google/generative-ai";
+import { AIVoice, Character, SceneAsset } from '@typings';
+import path from 'path';
+import { writeFileSync } from 'fs';
+import Ffmpeg from 'fluent-ffmpeg';
 
-
-const getGeminiApiKey = () => {
+export const getEnvironmentVariable = (name: string): string => {
     // It's highly recommended to use environment variables for your API key
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY environment variable not set.");
+    const envVariable = process.env[name];
+    if (!envVariable) {
+        throw new Error(`${envVariable} environment variable not set.`);
     }
-    return GEMINI_API_KEY;
+    return envVariable;
 }
 
-export const genAI = new GoogleGenerativeAI(getGeminiApiKey());
 
-export const JSONModel = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash", // Or any other suitable model
-    generationConfig: {
-        // Ensure the output is JSON
-        responseMimeType: "application/json",
-    }
-});
+/**
+ * Creates a temporary SRT subtitle file for a single scene.
+ * @param sceneAsset - The asset containing dialogue and duration.
+ * @param assetsDir - The directory to save the temp file.
+ * @returns The path to the generated SRT file.
+ */
+export async function createSrtFile(sceneAsset: SceneAsset, assetsDir: string): Promise<string> {
+    const dialogue = sceneAsset.dialogue.replace(/"/g, "''");
+    const srtPath = path.join(assetsDir, `${sceneAsset.sceneId}.srt`);
+
+    // SRT time format: HH:MM:SS,ms
+    const endTime = new Date(sceneAsset.durationSeconds * 1000).toISOString().substr(11, 12);
+    const srtContent = `1\n00:00:00,000 --> ${endTime}\n${dialogue}`;
+
+    writeFileSync(srtPath, srtContent);
+    return srtPath;
+}
+
+
+/**
+ * Converts a base64 image string into the format required by the Gemini API.
+ * @param {string} base64Data The base64 encoded image.
+ * @returns An object formatted for the Gemini API's contents array.
+ */
+export function fileToGenerativePart(base64Data: string) {
+    return {
+        inlineData: {
+            data: base64Data,
+            mimeType: "image/png", // Assuming PNG, adjust if necessary
+        },
+    };
+}
 
 
 /**
@@ -60,4 +86,138 @@ export function getMetaPrompt(): string {
 
         ## Now, begin. Here is the prose story:
   `;
+}
+
+/**
+ * Deterministically assigns a unique voice to a character for the duration of the script run.
+ * @param character - The character object.
+ * @returns The name of a Gemini TTS voice (e.g., "Charon").
+ */
+export function getGeminiVoiceForCharacter(character: Character, characterVoiceMap: Map<string, string>, usedVoices: Set<string>, aiVoices: AIVoice[]): string {
+    // If we've already assigned a voice to this character, return it.
+    if (characterVoiceMap.has(character.name)) {
+        return characterVoiceMap.get(character.name)!;
+    }
+
+    // --- Hardcoded assignments for key characters for consistency ---
+    if (character.is_narrator) {
+        const narratorVoice = "Rasalgethi"; // Sounds "Informative"
+        characterVoiceMap.set(character.name, narratorVoice);
+        usedVoices.add(narratorVoice);
+        return narratorVoice;
+    }
+
+    // --- Dynamically assign a voice for any other character ---
+    for (const voice of aiVoices) {
+        if (!usedVoices.has(voice.voice)) {
+            usedVoices.add(voice.voice);
+            characterVoiceMap.set(character.name, voice.voice);
+            return voice.voice;
+        }
+    }
+
+    // Fallback if we run out of unique voices
+    return "Zephyr";
+}
+
+
+/**
+ * Saves PCM audio data to a WAV file.
+ *
+ * @param filename The path to the output WAV file.
+ * @param pcmData The raw PCM audio data. This should typically be a Node.js `Buffer`
+ *                containing interleaved samples (e.g., Little-endian Int16 for 16-bit audio).
+ * @param channels The number of audio channels (e.g., 1 for mono, 2 for stereo). Defaults to 1.
+ * @param rate The sample rate in Hz (e.g., 44100, 24000). Defaults to 24000.
+ * @param sampleWidth The width of each sample in bytes (e.g., 2 for 16-bit, 4 for 32-bit float).
+ *                    Defaults to 2.
+ * @returns A Promise that resolves when the file is successfully written, or rejects on error.
+ */
+export async function saveWaveFile(filename: string, pcmData: Buffer, channels: number = 1, sampleRate: number = 24000, sampleWidth: number = 2,): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        const bitsPerSample = sampleWidth * 8;
+
+        // 2) calculate sizes
+        const byteRate = sampleRate * channels * bitsPerSample / 8;
+        const blockAlign = channels * bitsPerSample / 8;
+        const dataChunkSize = pcmData.length;
+        const riffChunkSize = 36 + dataChunkSize;   // 4 + (8 + fmtChunkSize) + (8 + dataChunkSize)
+
+        // 3) build 44‑byte WAV header
+        const header = Buffer.alloc(44);
+        let offset = 0;
+
+        header.write("RIFF", offset); offset += 4;
+        header.writeUInt32LE(riffChunkSize, offset); offset += 4;  // file size minus 8
+        header.write("WAVE", offset); offset += 4;
+
+        // fmt subchunk
+        header.write("fmt ", offset); offset += 4;
+        header.writeUInt32LE(16, offset); offset += 4;  // subchunk1 size = 16 for PCM
+        header.writeUInt16LE(1, offset); offset += 2;  // audio format = 1 (PCM)
+        header.writeUInt16LE(channels, offset); offset += 2;
+        header.writeUInt32LE(sampleRate, offset); offset += 4;
+        header.writeUInt32LE(byteRate, offset); offset += 4;
+        header.writeUInt16LE(blockAlign, offset); offset += 2;
+        header.writeUInt16LE(bitsPerSample, offset); offset += 2;
+
+        // data subchunk
+        header.write("data", offset); offset += 4;
+        header.writeUInt32LE(dataChunkSize, offset); offset += 4;
+
+        // 4) concatenate header + pcm and write to disk
+        const wavBuffer = Buffer.concat([header, Buffer.from(pcmData)]);
+        writeFileSync(filename, wavBuffer)
+        setTimeout(() => { resolve(); }, 250);
+    });
+}
+
+/**
+ * Generates an individual, silent video clip for a single scene.
+ * This clip includes the Ken Burns effect and burned-in subtitles.
+ * @param sceneAsset - The asset for the scene.
+ * @param imagePath - The path to the source image.
+ * @param srtPath - The path to the subtitle file.
+ * @param outputPath - Where to save the temporary video clip.
+ * @returns A promise that resolves when the clip is created.
+ */
+export function createAnimatedSceneClip(sceneAsset: SceneAsset, srtPath: string, outputPath: string): Promise<void> {
+    const VIDEO_FPS = Number(getEnvironmentVariable('VIDEO_FPS'));
+    const OUTPUT_RESOLUTION = getEnvironmentVariable('OUTPUT_RESOLUTION');
+    const durationFrames = VIDEO_FPS * sceneAsset.durationSeconds;
+
+    // escape any colons/backslashes in the path
+    const escapedSrt = srtPath.replace(/\\/g, '\\\\').replace(/:/g, '\\:');
+
+    // build a single filter graph string
+    const filterGraph = [
+        // 1) zoompan on the looping image
+        `[0:v]zoompan=\
+        z='min(zoom+0.001,1.5)':\
+        d=${durationFrames}:\
+        s=${OUTPUT_RESOLUTION}:\
+        x='iw/2-(iw/zoom/2)':\
+        y='ih/2-(ih/zoom/2)'[zoomed]`,
+        // 2) burn subtitles onto that zoomed stream
+        `[zoomed]subtitles='${escapedSrt}':\
+        force_style='Fontsize=24,PrimaryColour=&HFFFFFF&,BorderStyle=3,Outline=1,Shadow=1,Alignment=2,MarginV=25'[out]`
+    ].join(';');
+
+    return new Promise((resolve, reject) => {
+        Ffmpeg()
+            .input(sceneAsset.imageFilePath)
+            .inputOptions(['-loop 1'])
+            .complexFilter(filterGraph, 'out')   // “out” is the only video stream we want
+            .outputOptions([`-t ${sceneAsset.durationSeconds}`])
+            .output(outputPath)
+            .on('end', () => resolve())
+            .on('error', err =>
+                reject(
+                    new Error(
+                        `Failed to create clip for ${sceneAsset.sceneId}: ${err.message}`
+                    )
+                )
+            )
+            .run();
+    });
 }
