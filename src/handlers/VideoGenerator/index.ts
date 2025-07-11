@@ -150,7 +150,7 @@ export async function compileVideo(assets: GeneratedAssets, storyTitle: string, 
 
     // --- 5. Cleanup temporary files ---
     console.log("   - Cleaning up temporary files...");
-    // rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
     console.log("--- VIDEO COMPILATION COMPLETE ---");
 
     return finalVideoPath;
