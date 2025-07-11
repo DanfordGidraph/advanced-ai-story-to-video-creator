@@ -16,3 +16,10 @@
 node_modules/
 .env
 dist/
+
+src/assets/**/*.mp4
+src/assets/**/*.srt
+src/assets/**/*.wav
+src/assets/**/*.json
+src/assets/**/*.png
+src/assets/**/*.txt
