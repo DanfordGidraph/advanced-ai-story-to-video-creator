@@ -103,7 +103,7 @@ graph TD
 - **Language**: TypeScript
 - **Runtime**: Node.js
 - **Package Manager**: [Yarn](https://yarnpkg.com/)
-- **Blueprint Generation**: Google Gemini API (`@google/generative-ai`)
+- **Blueprint Generation**: Google Gemini API (`@google/genai`)
 - **Image Generation**: Any API-accessible model (e.g., Gemini, Stability AI, Midjourney)
 - **Audio Generation**: Any API-accessible TTS service (e.g., Google Cloud TTS, ElevenLabs)
 - **Video Compilation**: [FFmpeg](https.ffmpeg.org/) (via a Node.js wrapper like `fluent-ffmpeg`)
